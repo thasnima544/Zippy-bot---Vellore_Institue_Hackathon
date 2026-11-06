@@ -1,0 +1,1 @@
+{"error": "HTTPConnectionPool(host='192.168.1.60', port=80): Max retries exceeded with url: /sensors (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002459D81E7A0>, 'Connection to 192.168.1.60 timed out. (connect timeout=2)'))", "timestamp": 1761429313}

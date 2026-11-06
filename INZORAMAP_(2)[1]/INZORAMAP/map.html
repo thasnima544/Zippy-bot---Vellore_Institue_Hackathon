@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Disaster Bot Tracker Map</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: Arial; }
+    #map { height: 90vh; width: 100vw; }
+
+    .legend {
+      position: absolute;
+      bottom: 20px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.3);
+    }
+
+    .legend span {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+
+    .red-dot { background: red; }
+    .green-dot { background: green; }
+    .blue-dot { background: blue; }
+  </style>
+</head>
+<body>
+
+<h2 style="text-align:center">🗺️ Inzora Disaster  Rescue Bot Map</h2>
+<div id="map"></div>
+
+<div class="legend">
+  <div><span class="red-dot"></span> Danger Zone</div>
+  <div><span class="green-dot"></span> Safe Zone</div>
+  <div><span class="blue-dot"></span> My Robot Location</div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+  // Initialize map centered on Wayanad
+  var map = L.map('map').setView([11.6856, 76.1320], 12);
+
+  // Load base map layer from OpenStreetMap
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data © OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Sample Safe Zones (green markers)
+  const safeZones = [
+    { lat: 11.690, lng: 76.120, name: "Safe Zone A" },
+    { lat: 11.700, lng: 76.135, name: "Safe Zone B" }
+  ];
+
+  safeZones.forEach(s => {
+    L.circleMarker([s.lat, s.lng], {
+      color: 'green',
+      radius: 8,
+      fillOpacity: 0.8
+    }).addTo(map).bindPopup(`<b>${s.name}</b><br>Safe Zone`);
+  });
+
+  // On map click: add red danger marker
+  map.on('click', function(e) {
+    const { lat, lng } = e.latlng;
+    L.circleMarker([lat, lng], {
+      color: 'red',
+      radius: 10,
+      fillOpacity: 0.9
+    }).addTo(map).bindPopup(`🔴 Danger Zone<br>${lat.toFixed(4)}, ${lng.toFixed(4)}`).openPopup();
+  });
+
+  // Show robot location using GPS
+  function showRobotLocation(pos) {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+
+    const robotMarker = L.circleMarker([lat, lng], {
+      color: 'blue',
+      radius: 9,
+      fillOpacity: 0.9
+    }).addTo(map).bindPopup("🤖 My Robot Location").openPopup();
+
+    map.setView([lat, lng], 14); // zoom in
+  }
+
+  function locationError(err) {
+    alert("⚠️ Unable to access location: " + err.message);
+  }
+
+  // Get robot's current location (your device)
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(showRobotLocation, locationError, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    });
+  } else {
+    alert("Geolocation is not supported by your browser.");
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Real-Time Robot Tracker Using Phone Location</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #e0f7fa, #ffffff); /* Light blue to white gradient */
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h2 {
+      margin-top: 15px;
+      color: #0277bd; /* dark blue */
+      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      user-select: none;
+    }
+
+    #map {
+      height: 90vh;
+      width: 90vw;
+      max-width: 900px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      margin: 10px 0 20px 0;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    button {
+      padding: 10px 18px;
+      border: none;
+      background-color: #64b5f6; /* lighter blue */
+      color: white;
+      border-radius: 16px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 15px;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 3px 8px rgba(100, 181, 246, 0.4);
+    }
+
+    button:hover {
+      background-color: #42a5f5; /* slightly darker blue */
+      box-shadow: 0 5px 15px rgba(66, 165, 245, 0.6);
+    }
+
+    .legend {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.9); /* Slightly transparent white */
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+      z-index: 1000;
+      backdrop-filter: blur(8px);
+      color: #444;
+      min-width: 140px;
+    }
+
+    .legend span {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      margin-right: 8px;
+      border: 1.5px solid #999;
+      box-shadow: 0 0 4px rgba(0,0,0,0.1);
+    }
+
+    .red-dot {
+      background: #ff6b6b;
+    }
+
+    .green-dot {
+      background: #4caf50;
+    }
+
+    .emoji-marker {
+      font-size: 28px;
+      line-height: 28px;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <h2>🤖 Real-Time Rover Tracker - Wayanad Disaster Map</h2>
+
+  <div id="map"></div>
+
+  <div class="controls">
+    <button onclick="activateMode('safe')">🟢 Add Safe Zone</button>
+    <button onclick="activateMode('danger')">🔴 Add Danger Zone</button>
+    <button onclick="activateMode('none')">🧭 Navigate</button>
+  </div>
+
+  <div class="legend">
+    <div><span class="red-dot"></span> Danger Zone</div>
+    <div><span class="green-dot"></span> Safe Zone</div>
+    <div>🤖 My Rover (Phone GPS)</div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const map = L.map("map").setView([11.6856, 76.132], 13);
+    let placeMode = "none"; // "safe", "danger", "none"
+    const allMarkers = [];
+
+    // Add tile layer
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "Map data © OpenStreetMap contributors",
+    }).addTo(map);
+
+    // Emoji marker for robot
+    const roverIcon = L.divIcon({
+      className: 'emoji-marker',
+      html: '🤖',
+      iconSize: [28, 28],
+      iconAnchor: [14, 28], // center bottom
+      popupAnchor: [0, -28]
+    });
+
+    // Polyline and rover marker
+    let robotMarker = null;
+    const pathCoords = [];
+    const pathPolyline = L.polyline([], { color: "blue", weight: 4 }).addTo(map);
+
+    // Predefined safe zones
+    const safeZones = [
+      { lat: 11.69, lng: 76.12, name: "Safe Zone A" },
+      { lat: 11.7, lng: 76.135, name: "Safe Zone B" },
+    ];
+    safeZones.forEach((s) => {
+      const m = L.circleMarker([s.lat, s.lng], {
+        color: "green",
+        radius: 8,
+        fillOpacity: 0.7,
+      })
+        .addTo(map)
+        .bindPopup(`${s.name}<br>Safe Zone`);
+      m.on("click", () => map.removeLayer(m));
+      allMarkers.push(m);
+    });
+
+    function activateMode(mode) {
+      placeMode = mode;
+    }
+
+    map.on("click", function (e) {
+      const { lat, lng } = e.latlng;
+
+      if (placeMode === "safe" || placeMode === "danger") {
+        const color = placeMode === "safe" ? "green" : "red";
+        const label = placeMode === "safe" ? "🟢 Safe Zone" : "🔴 Danger Zone";
+        const marker = L.circleMarker([lat, lng], {
+          color: color,
+          radius: 10,
+          fillOpacity: 0.8,
+        })
+          .addTo(map)
+          .bindPopup(`${label}<br>${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+        marker.on("click", () => map.removeLayer(marker));
+        allMarkers.push(marker);
+      }
+    });
+
+    // Get GPS position from phone
+    if ("geolocation" in navigator) {
+      navigator.geolocation.watchPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+
+          pathCoords.push([lat, lng]);
+          pathPolyline.setLatLngs(pathCoords);
+
+          if (!robotMarker) {
+            robotMarker = L.marker([lat, lng], { icon: roverIcon })
+              .addTo(map)
+              .bindPopup("🤖 Inzora Rover Location")
+              .openPopup();
+            map.setView([lat, lng], 16);
+          } else {
+            robotMarker.setLatLng([lat, lng]);
+          }
+        },
+        (error) => {
+          alert("Location error: " + error.message);
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 10000,
+        }
+      );
+    } else {
+      alert("Geolocation is not supported by your browser.");
+    }
+  </script>
+</body>
+</html>

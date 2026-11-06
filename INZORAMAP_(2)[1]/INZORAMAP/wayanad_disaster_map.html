@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Wayanad Disaster Management Map</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    h2 {
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    #map {
+      height: 90vh;
+      width: 100%;
+    }
+
+    .legend {
+      background: white;
+      padding: 10px;
+      position: absolute;
+      bottom: 30px;
+      left: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.2);
+      font-size: 14px;
+    }
+
+    .legend span {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 5px;
+      border-radius: 50%;
+    }
+
+    .red-dot { background-color: red; }
+    .green-dot { background-color: green; }
+    .blue-dot { background-color: blue; }
+
+    #info {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+
+<h2>🗺️ Wayanad Disaster Management Map</h2>
+<div id="map"></div>
+
+<!-- Legend -->
+<div class="legend">
+  <div><span class="red-dot"></span> Danger Zone (Victim)</div>
+  <div><span class="green-dot"></span> Safe Zone</div>
+  <div><span class="blue-dot"></span> Your Location</div>
+</div>
+
+<!-- Info Box -->
+<div id="info">Click on the map to add a red (danger) marker.</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+  // Initialize map centered at Wayanad
+  var map = L.map('map').setView([11.6856, 76.1320], 12);
+
+  // Add map tiles
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data © OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Sample safe zones
+  var safeZones = [
+    {lat: 11.690, lng: 76.120, name: "Safe Zone A"},
+    {lat: 11.700, lng: 76.135, name: "Safe Zone B"}
+  ];
+
+  // Add green markers for safe zones
+  safeZones.forEach(function(s) {
+    L.circleMarker([s.lat, s.lng], {
+      color: 'green',
+      radius: 8,
+      fillOpacity: 0.7
+    }).addTo(map).bindPopup(`<b>${s.name}</b><br>Safe Zone`);
+  });
+
+  // 🟥 Add marker on map click
+  map.on('click', function(e) {
+    let lat = e.latlng.lat;
+    let lng = e.latlng.lng;
+    L.circleMarker([lat, lng], {
+      color: 'red',
+      radius: 10,
+      fillOpacity: 0.9
+    }).addTo(map).bindPopup(`🔴 Danger Zone<br>Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`).openPopup();
+  });
+
+  // 🟦 Track and show user's current location
+  function showLocation(position) {
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+
+    L.circleMarker([lat, lng], {
+      color: 'blue',
+      radius: 8,
+      fillOpacity: 0.8
+    }).addTo(map).bindPopup("🟦 Your Location").openPopup();
+
+    map.setView([lat, lng], 13); // zoom to user
+  }
+
+  function locationError(err) {
+    console.warn(`Geolocation error (${err.code}): ${err.message}`);
+    document.getElementById('info').innerText = "Location access denied or unavailable.";
+  }
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(showLocation, locationError);
+  } else {
+    document.getElementById('info').innerText = "Geolocation not supported by this browser.";
+  }
+</script>
+
+</body>
+</html>
